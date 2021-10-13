@@ -1,15 +1,19 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.widgets import Slider
 
 dt = 0.01
 
 # parametrized S-shaped response
 class Cutoff:
-    def __init__(self):
-        self.ymax = 1
-        self.ymin = 0
-        self.k = 0.3
-        self.n = 4.7
+    def __init__(self, *, ymax, ymin, k, n):
+        self.ymax = ymax
+        self.ymin = ymin
+        self.k = k
+        self.n = n
+
+    def default():
+        return Cutoff(ymax=1, ymin=0, k=0.3, n=4.7)
 
     def steady_state(self, x):
         return self.ymin + (self.ymax - self.ymin) / (1 + (x / self.k) ** self.n)
@@ -17,9 +21,12 @@ class Cutoff:
 
 # non-instantaneous processes
 class Timer:
-    def __init__(self):
-        self.tau_emit = 1
-        self.tau_decay = 1
+    def __init__(self, *, emit, decay):
+        self.tau_emit = emit
+        self.tau_decay = decay
+
+    def default():
+        return Timer(emit=1, decay=1)
 
 # a combinator is any logical gate
 class Combinator:
@@ -30,25 +37,43 @@ class Not(Combinator):
     def response(self, x):
         return self.cutoff.steady_state(x)
 
+    def default():
+        return Not(Cutoff.default())
+
 class Same(Combinator):
     def response(self, x):
         return self.cutoff.steady_state(1 - x)
+
+    def default():
+        return Same(Cutoff.default())
 
 class And(Combinator):
     def response(self, x, y):
         return self.cutoff.steady_state(1 - x * y)
 
+    def default():
+        return And(Cutoff.default())
+
 class Or(Combinator):
     def response(self, x, y):
         return self.cutoff.steady_state((1-x) * (1-y))
+
+    def default():
+        return Or(Cutoff.default())
 
 class Nor(Combinator):
     def response(self, x, y):
         return self.cutoff.steady_state(1 - (1-x) * (1-y))
 
+    def default():
+        return Nor(Cutoff.default())
+
 class Nand(Combinator):
     def response(self, x, y):
         return self.cutoff.steady_state(x * y)
+
+    def default():
+        return Nand(Cutoff.default())
 
 # instanciation of a logical gate takes
 # - the gate description
