@@ -118,33 +118,96 @@ class Input:
             self.output.append(self.ind(len(self.output) * dt))
         return self.output[t]
 
-
 class Circuit:
     def __init__(self, *gates):
         self.gates = gates
 
-    def run(self, tmax):
-        imax = int(tmax / dt)
+    def run(self, imax):
         for t in range(imax):
             for g in self.gates:
                 g.out(t)
+
+    def plot(self, tmax):
+        imax = int(tmax / dt)
+        self.run(imax)
         for g in self.gates:
             plt.plot([i*dt for i in range(imax)], g.output, label=g.name)
         plt.legend()
         plt.show()
 
 
-pulse = 3
-start = 3
-delay_ab = 0
-delay_ac = 2
-a = Input("A", lambda t: 1 if start < t < start+pulse else 0)
-b = Input("B", lambda t: 1 if start+delay_ab < t < start+pulse+delay_ab else 0)
-c = Input("C", lambda t: 1 if start+delay_ac < t < start+pulse+delay_ac else 0)
-aeb = Gate("A & B", And(Cutoff()), Timer(), a, b)
-aebec = Gate("(A & B) & C", And(Cutoff()), Timer(), aeb, c)
-sc = Gate("=C", Same(Cutoff()), Timer(), c)
-aebesc = Gate("(A & B) & =C", And(Cutoff()), Timer(), aeb, sc)
-c = Circuit(a, b, c, aebec, aebesc)
-c.run(15)
+def three_way_and(delay_ab, delay_ac, imax, start, pulse):
+    a = Input("A", lambda t: 1 if start < t < start+pulse else 0)
+    b = Input("B", lambda t: 1 if start+delay_ab < t < start+pulse+delay_ab else 0)
+    c = Input("C", lambda t: 1 if start+delay_ac < t < start+pulse+delay_ac else 0)
+    aeb = Gate("A & B", And.default(), Timer.default(), a, b)
+    aebec = Gate("(A & B) & C", And.default(), Timer.default(), aeb, c)
+    sc = Gate("=C", Same.default(), Timer.default(), c)
+    aebesc = Gate("(A & B) & =C", And.default(), Timer.default(), aeb, sc)
+    c = Circuit(a, b, c, aebec, aebesc)
+    c.run(imax)
+    return c
 
+pulse = 3
+start = 5
+tmax = 20
+imax = int(tmax / dt)
+t = np.linspace(0, tmax, imax)
+
+init_delay_ab = 0
+init_delay_ac = 0
+
+# Create the figure and the line that we will manipulate
+fig, ax = plt.subplots()
+lines = [plt.plot(t, g.output, lw=2)[0] for g in three_way_and(init_delay_ab, init_delay_ac, imax, start, pulse).gates]
+ax.set_xlabel('Time [s]')
+
+axcolor = 'lightgoldenrodyellow'
+ax.margins(x=0)
+
+# adjust the main plot to make room for the sliders
+plt.subplots_adjust(left=0.1, bottom=0.25)
+
+draw_xmin = 0.1
+draw_xsize = 0.8
+delay_range = 4
+draw_delaymin = draw_xmin + draw_xsize * (start - delay_range) / tmax
+draw_delaymax = draw_xmin + draw_xsize * (start + delay_range) / tmax
+
+# Make a horizontal slider to control the A/B delay
+ax_ab = plt.axes([draw_delaymin, 0.15, draw_delaymax-draw_delaymin, 0.03], facecolor=axcolor)
+ab_slider = Slider(
+    ax=ax_ab,
+    label='A/B delay [h]',
+    valmin=-delay_range,
+    valmax=delay_range,
+    valinit=init_delay_ab,
+)
+
+# Make a vertically oriented slider to control the A/C delay
+#ax_ac = plt.axes([0.1, 0.25, 0.0225, 0.63], facecolor=axcolor)
+#ax_ac = plt.axes([0.25, 0.15, 0.65, 0.03], facecolor=axcolor)
+ax_ac = plt.axes([draw_delaymin, 0.1, draw_delaymax-draw_delaymin, 0.03], facecolor=axcolor)
+ac_slider = Slider(
+    ax=ax_ac,
+    label="A/C delay [h]",
+    valmin=-delay_range,
+    valmax=delay_range,
+    valinit=init_delay_ac,
+    #orientation="vertical"
+)
+
+
+# The function to be called anytime a slider's value changes
+def update(val):
+    c = three_way_and(ab_slider.val, ac_slider.val, imax, start, pulse)
+    for (line, g) in zip(lines, c.gates):
+        line.set_ydata(g.output)
+    fig.canvas.draw_idle()
+
+
+# register the update function with each slider
+ab_slider.on_changed(update)
+ac_slider.on_changed(update)
+
+plt.show()
