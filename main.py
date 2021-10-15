@@ -136,10 +136,10 @@ class Circuit:
         plt.show()
 
 
-def three_way_and(delay_ab, delay_ac, imax, start, pulse):
-    a = Input("A", lambda t: 1 if start < t < start+pulse else 0)
-    b = Input("B", lambda t: 1 if start+delay_ab < t < start+pulse+delay_ab else 0)
-    c = Input("C", lambda t: 1 if start+delay_ac < t < start+pulse+delay_ac else 0)
+def three_way_and(*, delay_ab, delay_ac, imax, start, pulse_a, pulse_b, pulse_c):
+    a = Input("A", lambda t: 1 if start < t < start+pulse_a else 0)
+    b = Input("B", lambda t: 1 if start+delay_ab < t < start+pulse_b+delay_ab else 0)
+    c = Input("C", lambda t: 1 if start+delay_ac < t < start+pulse_c+delay_ac else 0)
     aeb = Gate("A & B", And.default(), Timer.default(), a, b)
     aebec = Gate("(A & B) & C", And.default(), Timer.default(), aeb, c)
     sc = Gate("=C", Same.default(), Timer.default(), c)
@@ -159,7 +159,14 @@ init_delay_ac = 0
 
 # Create the figure and the line that we will manipulate
 fig, ax = plt.subplots()
-lines = [plt.plot(t, g.output, lw=2)[0] for g in three_way_and(init_delay_ab, init_delay_ac, imax, start, pulse).gates]
+lines = [plt.plot(t, g.output, lw=2)[0] for g in three_way_and(
+    delay_ab=init_delay_ab,
+    delay_ac=init_delay_ac,
+    imax=imax,
+    start=start,
+    pulse_a=pulse,
+    pulse_b=pulse,
+    pulse_c=pulse).gates]
 ax.set_xlabel('Time [s]')
 
 axcolor = 'lightgoldenrodyellow'
@@ -184,9 +191,7 @@ ab_slider = Slider(
     valinit=init_delay_ab,
 )
 
-# Make a vertically oriented slider to control the A/C delay
-#ax_ac = plt.axes([0.1, 0.25, 0.0225, 0.63], facecolor=axcolor)
-#ax_ac = plt.axes([0.25, 0.15, 0.65, 0.03], facecolor=axcolor)
+# Make a horizontal slider to control the A/C delay
 ax_ac = plt.axes([draw_delaymin, 0.1, draw_delaymax-draw_delaymin, 0.03], facecolor=axcolor)
 ac_slider = Slider(
     ax=ax_ac,
@@ -197,10 +202,45 @@ ac_slider = Slider(
     #orientation="vertical"
 )
 
+# Three vertical sliders for pulse duration for A,B,C
+ax_pulse_c = plt.axes([0.75, 0.1, 0.03, 0.1], facecolor=axcolor)
+pulse_c_slider = Slider(
+    ax=ax_pulse_c,
+    label="C",
+    valmin=1,
+    valmax=4,
+    valinit=pulse,
+    orientation="vertical"
+)
+ax_pulse_b = plt.axes([0.70, 0.1, 0.03, 0.1], facecolor=axcolor)
+pulse_b_slider = Slider(
+    ax=ax_pulse_b,
+    label="B",
+    valmin=1,
+    valmax=4,
+    valinit=pulse,
+    orientation="vertical"
+)
+ax_pulse_a = plt.axes([0.65, 0.1, 0.03, 0.1], facecolor=axcolor)
+pulse_a_slider = Slider(
+    ax=ax_pulse_a,
+    label="A",
+    valmin=1,
+    valmax=4,
+    valinit=pulse,
+    orientation="vertical"
+)
 
 # The function to be called anytime a slider's value changes
 def update(val):
-    c = three_way_and(ab_slider.val, ac_slider.val, imax, start, pulse)
+    c = three_way_and(
+        delay_ab=ab_slider.val,
+        delay_ac=ac_slider.val,
+        imax=imax,
+        start=start,
+        pulse_a=pulse_a_slider.val,
+        pulse_b=pulse_b_slider.val,
+        pulse_c=pulse_c_slider.val)
     for (line, g) in zip(lines, c.gates):
         line.set_ydata(g.output)
     fig.canvas.draw_idle()
@@ -209,5 +249,8 @@ def update(val):
 # register the update function with each slider
 ab_slider.on_changed(update)
 ac_slider.on_changed(update)
+pulse_c_slider.on_changed(update)
+pulse_b_slider.on_changed(update)
+pulse_a_slider.on_changed(update)
 
 plt.show()
