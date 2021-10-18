@@ -110,13 +110,29 @@ class Gate:
 class Input:
     def __init__(self, name, ind):
         self.name = name
-        self.ind = ind # should be a float -> [0,1] function that tells the value
-        self.output = [ind(0)]
+        # should be a float -> [0,1] function that tells the value
+        self.ind = ind
+        self.output = [ind(0, 0, dt)]
 
     def out(self, t):
         while len(self.output) <= t:
-            self.output.append(self.ind(len(self.output) * dt))
+            self.output.append(
+                self.ind(len(self.output) * dt, self.output[-1], dt))
         return self.output[t]
+
+
+def heaviside_input(start, stop, delay):
+    return lambda t, last, dt: 1 if start+delay < t < stop+delay else 0
+
+
+def expstep_input(start, stop, tau_emit, tau_decay, delay):
+    def f(t, last, dt):
+        down = last * dt / tau_decay
+        response = start+delay <= t <= stop+delay
+        up = response * dt / tau_emit
+        return last + up - down
+    return f
+
 
 class Circuit:
     def __init__(self, *gates):
@@ -137,9 +153,9 @@ class Circuit:
 
 
 def three_way_and(*, delay_ab, delay_ac, imax, start, pulse_a, pulse_b, pulse_c):
-    a = Input("A", lambda t: 1 if start < t < start+pulse_a else 0)
-    b = Input("B", lambda t: 1 if start+delay_ab < t < start+pulse_b+delay_ab else 0)
-    c = Input("C", lambda t: 1 if start+delay_ac < t < start+pulse_c+delay_ac else 0)
+    a = Input("A", heaviside_input(start, start+pulse_a, 0))
+    b = Input("B", heaviside_input(start, start+pulse_b, delay_ab))
+    c = Input("C", heaviside_input(start, start+pulse_c, delay_ac))
     aeb = Gate("A & B", And.default(), Timer.default(), a, b)
     aebec = Gate("(A & B) & C", And.default(), Timer.default(), aeb, c)
     sc = Gate("=C", Same.default(), Timer.default(), c)
