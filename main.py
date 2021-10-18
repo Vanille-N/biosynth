@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider
+from matplotlib.widgets import Slider, Button
 
 dt = 0.01
 
@@ -152,10 +152,15 @@ class Circuit:
         plt.show()
 
 
-def three_way_and(*, delay_ab, delay_ac, imax, start, pulse_a, pulse_b, pulse_c):
-    a = Input("A", heaviside_input(start, start+pulse_a, 0))
-    b = Input("B", heaviside_input(start, start+pulse_b, delay_ab))
-    c = Input("C", heaviside_input(start, start+pulse_c, delay_ac))
+def three_way_and(*, delay_ab, delay_ac, imax, start, pulse_a, pulse_b, pulse_c, use_expstep=False):
+    if use_expstep:
+        a = Input("A", expstep_input(start, start+pulse_a, 0.5, 0.5, 0))
+        b = Input("B", expstep_input(start, start+pulse_b, 0.5, 0.5, delay_ab))
+        c = Input("C", expstep_input(start, start+pulse_c, 0.5, 0.5, delay_ac))
+    else:
+        a = Input("A", heaviside_input(start, start+pulse_a, 0))
+        b = Input("B", heaviside_input(start, start+pulse_b, delay_ab))
+        c = Input("C", heaviside_input(start, start+pulse_c, delay_ac))
     aeb = Gate("A & B", And.default(), Timer.default(), a, b)
     aebec = Gate("(A & B) & C", And.default(), Timer.default(), aeb, c)
     sc = Gate("=C", Same.default(), Timer.default(), c)
@@ -189,16 +194,17 @@ axcolor = 'lightgoldenrodyellow'
 ax.margins(x=0)
 
 # adjust the main plot to make room for the sliders
-plt.subplots_adjust(left=0.1, bottom=0.25)
+plt.subplots_adjust(left=0.1, bottom=0.35)
 
-draw_xmin = 0.1
+draw_xmin = 0.15
 draw_xsize = 0.8
 delay_range = 4
 draw_delaymin = draw_xmin + draw_xsize * (start - delay_range) / tmax
 draw_delaymax = draw_xmin + draw_xsize * (start + delay_range) / tmax
 
 # Make a horizontal slider to control the A/B delay
-ax_ab = plt.axes([draw_delaymin, 0.15, draw_delaymax-draw_delaymin, 0.03], facecolor=axcolor)
+ax_ab = plt.axes([draw_delaymin, 0.2, draw_delaymax -
+                 draw_delaymin, 0.03], facecolor=axcolor)
 ab_slider = Slider(
     ax=ax_ab,
     label='A/B delay [h]',
@@ -208,7 +214,8 @@ ab_slider = Slider(
 )
 
 # Make a horizontal slider to control the A/C delay
-ax_ac = plt.axes([draw_delaymin, 0.1, draw_delaymax-draw_delaymin, 0.03], facecolor=axcolor)
+ax_ac = plt.axes([draw_delaymin, 0.15, draw_delaymax -
+                 draw_delaymin, 0.03], facecolor=axcolor)
 ac_slider = Slider(
     ax=ax_ac,
     label="A/C delay [h]",
@@ -219,7 +226,7 @@ ac_slider = Slider(
 )
 
 # Three vertical sliders for pulse duration for A,B,C
-ax_pulse_c = plt.axes([0.75, 0.1, 0.03, 0.1], facecolor=axcolor)
+ax_pulse_c = plt.axes([0.75, 0.15, 0.03, 0.1], facecolor=axcolor)
 pulse_c_slider = Slider(
     ax=ax_pulse_c,
     label="C",
@@ -228,7 +235,7 @@ pulse_c_slider = Slider(
     valinit=pulse,
     orientation="vertical"
 )
-ax_pulse_b = plt.axes([0.70, 0.1, 0.03, 0.1], facecolor=axcolor)
+ax_pulse_b = plt.axes([0.70, 0.15, 0.03, 0.1], facecolor=axcolor)
 pulse_b_slider = Slider(
     ax=ax_pulse_b,
     label="B",
@@ -237,7 +244,7 @@ pulse_b_slider = Slider(
     valinit=pulse,
     orientation="vertical"
 )
-ax_pulse_a = plt.axes([0.65, 0.1, 0.03, 0.1], facecolor=axcolor)
+ax_pulse_a = plt.axes([0.65, 0.15, 0.03, 0.1], facecolor=axcolor)
 pulse_a_slider = Slider(
     ax=ax_pulse_a,
     label="A",
@@ -246,6 +253,12 @@ pulse_a_slider = Slider(
     valinit=pulse,
     orientation="vertical"
 )
+
+use_expstep = False
+ax_heaviside = plt.axes([0.05, 0.05, 0.2, 0.05])
+heaviside_button = Button(ax_heaviside, "Heaviside")
+ax_expstep = plt.axes([0.3, 0.05, 0.2, 0.05])
+expstep_button = Button(ax_expstep, "ExpStep")
 
 # The function to be called anytime a slider's value changes
 def update(val):
@@ -256,11 +269,19 @@ def update(val):
         start=start,
         pulse_a=pulse_a_slider.val,
         pulse_b=pulse_b_slider.val,
-        pulse_c=pulse_c_slider.val)
+        pulse_c=pulse_c_slider.val,
+        use_expstep=use_expstep)
     for (line, g) in zip(lines, c.gates):
         line.set_ydata(g.output)
     fig.canvas.draw_idle()
 
+
+def switch_input_type(new_type):
+    def f(_):
+        global use_expstep
+        use_expstep = new_type
+        update(True)
+    return f
 
 # register the update function with each slider
 ab_slider.on_changed(update)
@@ -268,5 +289,7 @@ ac_slider.on_changed(update)
 pulse_c_slider.on_changed(update)
 pulse_b_slider.on_changed(update)
 pulse_a_slider.on_changed(update)
+heaviside_button.on_clicked(switch_input_type(False))
+expstep_button.on_clicked(switch_input_type(True))
 
 plt.show()
