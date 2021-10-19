@@ -226,30 +226,30 @@ ac_slider = Slider(
 )
 
 # Three vertical sliders for pulse duration for A,B,C
-ax_pulse_c = plt.axes([0.75, 0.15, 0.03, 0.1], facecolor=axcolor)
+ax_pulse_c = plt.axes([0.75, 0.05, 0.03, 0.2], facecolor=axcolor)
 pulse_c_slider = Slider(
     ax=ax_pulse_c,
     label="C",
     valmin=1,
-    valmax=4,
+    valmax=8,
     valinit=pulse,
     orientation="vertical"
 )
-ax_pulse_b = plt.axes([0.70, 0.15, 0.03, 0.1], facecolor=axcolor)
+ax_pulse_b = plt.axes([0.70, 0.05, 0.03, 0.2], facecolor=axcolor)
 pulse_b_slider = Slider(
     ax=ax_pulse_b,
     label="B",
     valmin=1,
-    valmax=4,
+    valmax=8,
     valinit=pulse,
     orientation="vertical"
 )
-ax_pulse_a = plt.axes([0.65, 0.15, 0.03, 0.1], facecolor=axcolor)
+ax_pulse_a = plt.axes([0.65, 0.05, 0.03, 0.2], facecolor=axcolor)
 pulse_a_slider = Slider(
     ax=ax_pulse_a,
     label="A",
     valmin=1,
-    valmax=4,
+    valmax=8,
     valinit=pulse,
     orientation="vertical"
 )
