@@ -242,12 +242,12 @@ ac_slider = delay_slider(y=0.15, label='A/C delay [h]', valinit=init_delay_ac)
 
 
 def pulse_slider(*, x, label):
-    ax = plt.axes([x, 0.15, 0.03, 0.1], facecolor=axcolor)
+    ax = plt.axes([x, 0.075, 0.03, 0.2], facecolor=axcolor)
     return Slider(
         ax=ax,
         label=label,
         valmin=1,
-        valmax=5,
+        valmax=8,
         valinit=pulse,
         orientation='vertical',
     )
