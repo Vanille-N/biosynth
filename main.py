@@ -69,8 +69,9 @@ class Nand(Combinator):
 # - time variation parameters
 # - the 
 class Gate:
-    def __init__(self, name, combinator, timer, *inputs):
+    def __init__(self, name, color, combinator, timer, *inputs):
         self.name = name
+        self.color = color
         self.combinator = combinator
         self.timer = timer
         self.inputs = inputs
@@ -97,8 +98,9 @@ class Gate:
         return self.output[t]
 
 class Input:
-    def __init__(self, name, ind):
+    def __init__(self, name, color, ind):
         self.name = name
+        self.color = color
         # should be a float -> [0,1] function that tells the value
         self.ind = ind
         self.output = [ind(0, 0, dt)]
@@ -110,14 +112,18 @@ class Input:
         return self.output[t]
 
 
-def heaviside_input(start, stop, delay):
-    return lambda t, last, dt: 1 if start+delay < t < stop+delay else 0
+def heaviside_input(*, start, stop, delay):
+    def f(t, last, dt):
+        if start + delay < t < stop + delay:
+            return 1
+        else:
+            return 0
+    return f
 
-
-def expstep_input(start, stop, tau_emit, tau_decay, delay):
+def expstep_input(*, start, stop, tau_emit, tau_decay, delay):
     def f(t, last, dt):
         down = last * dt / tau_decay
-        response = start+delay <= t <= stop+delay
+        response = start + delay <= t <= stop + delay
         up = response * dt / tau_emit
         return last + up - down
     return f
@@ -143,18 +149,43 @@ class Circuit:
 
 def three_way_and(*, delay_ab, delay_ac, imax, start, pulse_a, pulse_b, pulse_c, use_expstep=False):
     if use_expstep:
-        a = Input("A", expstep_input(start, start+pulse_a, 0.5, 0.5, 0))
-        b = Input("B", expstep_input(start, start+pulse_b, 0.5, 0.5, delay_ab))
-        c = Input("C", expstep_input(start, start+pulse_c, 0.5, 0.5, delay_ac))
+        f = lambda pulse, delay: expstep_input(
+            start=start,
+            stop=start + pulse,
+            tau_emit=0.5,
+            tau_decay=0.5,
+            delay=delay,
+        )
     else:
-        a = Input("A", heaviside_input(start, start+pulse_a, 0))
-        b = Input("B", heaviside_input(start, start+pulse_b, delay_ab))
-        c = Input("C", heaviside_input(start, start+pulse_c, delay_ac))
-    aeb = Gate("A & B", And.default(), Timer.default(), a, b)
-    aebec = Gate("(A & B) & C", And.default(), Timer.default(), aeb, c)
-    sc = Gate("=C", Same.default(), Timer.default(), c)
-    aebesc = Gate("(A & B) & =C", And.default(), Timer.default(), aeb, sc)
-    c = Circuit(a, b, c, aebec, aebesc)
+        f = lambda pulse, delay: heaviside_input(
+            start=start,
+            stop=start + pulse,
+            delay=delay,
+        )
+    a = Input("A", 'grey', f(pulse_a, 0))
+    b = Input("B", 'darkgrey', f(pulse_b, delay_ab))
+    c = Input("C", 'lightgray', f(pulse_c, delay_ac))
+    a_b_and = Gate("A & B", '', And.default(), Timer.default(), a, b)
+    b_c_and = Gate("A & C", '', And.default(), Timer.default(), b, c)
+    a_c_and = Gate("A & C", '', And.default(), Timer.default(), a, c)
+    a_b_and_c_and = Gate("(A & B) & C", 'red', And.default(), Timer.default(), a_b_and, c)
+    a_b_c_and_and = Gate("A & (B & C)", 'orange', And.default(), Timer.default(), a, b_c_and)
+    a_c_and_b_and = Gate("B & (A & C)", 'yellow', And.default(), Timer.default(), b, a_c_and)
+    a_eq = Gate("=A", '', Same.default(), Timer.default(), a)
+    b_eq = Gate("=B", '', Same.default(), Timer.default(), b)
+    c_eq = Gate("=C", '', Same.default(), Timer.default(), c)
+    a_b_and_c_eq_and = Gate("(A & B) & =C", 'blue', And.default(), Timer.default(), a_b_and, c_eq)
+    a_eq_b_c_and_and = Gate("=A & (B & C)", 'green', And.default(), Timer.default(), a_eq, b_c_and)
+    a_c_and_b_eq_and = Gate("=B & (A & C)", 'cyan', And.default(), Timer.default(), b_eq, a_c_and)
+    c = Circuit(
+        a, b, c,
+        a_b_and_c_and,
+        #a_b_c_and_and,
+        #a_c_and_b_and,
+        a_b_and_c_eq_and,
+        #a_eq_b_c_and_and,
+        #a_c_and_b_eq_and,
+    )
     c.run(imax)
     return c
 
@@ -169,14 +200,16 @@ init_delay_ac = 0
 
 # Create the figure and the line that we will manipulate
 fig, ax = plt.subplots()
-lines = [plt.plot(t, g.output, lw=2)[0] for g in three_way_and(
+lines = [plt.plot(t, g.output, lw=2, label=g.name, color=g.color)[0] for g in three_way_and(
     delay_ab=init_delay_ab,
     delay_ac=init_delay_ac,
     imax=imax,
     start=start,
     pulse_a=pulse,
     pulse_b=pulse,
-    pulse_c=pulse).gates]
+    pulse_c=pulse
+).gates]
+plt.legend()
 ax.set_xlabel('Time [s]')
 
 axcolor = 'lightgoldenrodyellow'
