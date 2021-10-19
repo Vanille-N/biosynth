@@ -224,57 +224,37 @@ delay_range = 4
 draw_delaymin = draw_xmin + draw_xsize * (start - delay_range) / tmax
 draw_delaymax = draw_xmin + draw_xsize * (start + delay_range) / tmax
 
-# Make a horizontal slider to control the A/B delay
-ax_ab = plt.axes([draw_delaymin, 0.2, draw_delaymax -
-                 draw_delaymin, 0.03], facecolor=axcolor)
-ab_slider = Slider(
-    ax=ax_ab,
-    label='A/B delay [h]',
-    valmin=-delay_range,
-    valmax=delay_range,
-    valinit=init_delay_ab,
-)
+def delay_slider(*, y, label, valinit):
+    ax = plt.axes(
+        [draw_delaymin, y, draw_delaymax - draw_delaymin, 0.03],
+        facecolor=axcolor,
+    )
+    return Slider(
+        ax=ax,
+        label=label,
+        valmin=-delay_range,
+        valmax=delay_range,
+        valinit=valinit,
+    )
 
-# Make a horizontal slider to control the A/C delay
-ax_ac = plt.axes([draw_delaymin, 0.15, draw_delaymax -
-                 draw_delaymin, 0.03], facecolor=axcolor)
-ac_slider = Slider(
-    ax=ax_ac,
-    label="A/C delay [h]",
-    valmin=-delay_range,
-    valmax=delay_range,
-    valinit=init_delay_ac,
-    #orientation="vertical"
-)
+ab_slider = delay_slider(y=0.2, label='A/B delay [h]', valinit=init_delay_ab)
+ac_slider = delay_slider(y=0.15, label='A/C delay [h]', valinit=init_delay_ac)
 
-# Three vertical sliders for pulse duration for A,B,C
-ax_pulse_c = plt.axes([0.75, 0.15, 0.03, 0.1], facecolor=axcolor)
-pulse_c_slider = Slider(
-    ax=ax_pulse_c,
-    label="C",
-    valmin=1,
-    valmax=4,
-    valinit=pulse,
-    orientation="vertical"
-)
-ax_pulse_b = plt.axes([0.70, 0.15, 0.03, 0.1], facecolor=axcolor)
-pulse_b_slider = Slider(
-    ax=ax_pulse_b,
-    label="B",
-    valmin=1,
-    valmax=4,
-    valinit=pulse,
-    orientation="vertical"
-)
-ax_pulse_a = plt.axes([0.65, 0.15, 0.03, 0.1], facecolor=axcolor)
-pulse_a_slider = Slider(
-    ax=ax_pulse_a,
-    label="A",
-    valmin=1,
-    valmax=4,
-    valinit=pulse,
-    orientation="vertical"
-)
+
+def pulse_slider(*, x, label):
+    ax = plt.axes([x, 0.15, 0.03, 0.1], facecolor=axcolor)
+    return Slider(
+        ax=ax,
+        label=label,
+        valmin=1,
+        valmax=5,
+        valinit=pulse,
+        orientation='vertical',
+    )
+
+pulse_c_slider = pulse_slider(x=0.75, label="C")
+pulse_b_slider = pulse_slider(x=0.70, label="B")
+pulse_a_slider = pulse_slider(x=0.65, label="A")
 
 use_expstep = False
 ax_heaviside = plt.axes([0.05, 0.05, 0.2, 0.05])
@@ -306,11 +286,8 @@ def switch_input_type(new_type):
     return f
 
 # register the update function with each slider
-ab_slider.on_changed(update)
-ac_slider.on_changed(update)
-pulse_c_slider.on_changed(update)
-pulse_b_slider.on_changed(update)
-pulse_a_slider.on_changed(update)
+for slider in [ab_slider, ac_slider, pulse_c_slider, pulse_b_slider, pulse_a_slider]:
+    slider.on_changed(update)
 heaviside_button.on_clicked(switch_input_type(False))
 expstep_button.on_clicked(switch_input_type(True))
 
