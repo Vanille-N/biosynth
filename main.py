@@ -33,47 +33,36 @@ class Combinator:
     def __init__(self, cutoff):
         self.cutoff = cutoff
 
-class Not(Combinator):
-    def response(self, x):
-        return self.cutoff.steady_state(x)
+    def response(self, *args):
+        return self.cutoff.steady_state(self.activation(*args))
 
-    def default():
-        return Not(Cutoff.default())
+    @classmethod
+    def default(cls):
+        return cls(Cutoff.default())
+
+class Not(Combinator):
+    def activation(self, x):
+        return x
 
 class Same(Combinator):
-    def response(self, x):
-        return self.cutoff.steady_state(1 - x)
-
-    def default():
-        return Same(Cutoff.default())
+    def activation(self, x):
+        return 1 - x
 
 class And(Combinator):
-    def response(self, x, y):
-        return self.cutoff.steady_state(1 - x * y)
-
-    def default():
-        return And(Cutoff.default())
+    def activation(self, x, y):
+        return 1 - x * y
 
 class Or(Combinator):
-    def response(self, x, y):
-        return self.cutoff.steady_state((1-x) * (1-y))
-
-    def default():
-        return Or(Cutoff.default())
+    def activation(self, x, y):
+        return (1-x) * (1-y)
 
 class Nor(Combinator):
-    def response(self, x, y):
-        return self.cutoff.steady_state(1 - (1-x) * (1-y))
-
-    def default():
-        return Nor(Cutoff.default())
+    def activation(self, x, y):
+        return 1 - (1-x) * (1-y)
 
 class Nand(Combinator):
-    def response(self, x, y):
-        return self.cutoff.steady_state(x * y)
-
-    def default():
-        return Nand(Cutoff.default())
+    def activation(self, x, y):
+        return x * y
 
 # instanciation of a logical gate takes
 # - the gate description
