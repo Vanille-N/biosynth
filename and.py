@@ -1,5 +1,7 @@
 from circuit import *
 
+sigma = 0.
+
 def three_way_and(*, delay_ab, delay_ac, imax, start, pulse_a, pulse_b, pulse_c, use_expstep=False):
     if use_expstep:
         f = lambda pulse, delay: expstep_input(
@@ -39,7 +41,8 @@ def three_way_and(*, delay_ab, delay_ac, imax, start, pulse_a, pulse_b, pulse_c,
         #a_eq_b_c_and_and,
         #a_c_and_b_eq_and,
     )
-    c.run(imax)
+    global sigma
+    c.run(imax,sigma)
     return c
 
 
@@ -110,6 +113,18 @@ pulse_c_slider = pulse_slider(x=0.75, label="C")
 pulse_b_slider = pulse_slider(x=0.70, label="B")
 pulse_a_slider = pulse_slider(x=0.65, label="A")
 
+ax = plt.axes([0.8, 0.075, 0.03, 0.2], facecolor=axcolor)
+noise_slider = Slider(
+        ax=ax,
+        label='Noise',
+        valmin=0,
+        valmax=0.0099,
+        valinit=0,
+        orientation='vertical',
+    )
+
+
+
 use_expstep = False
 ax_heaviside = plt.axes([0.05, 0.05, 0.2, 0.05])
 heaviside_button = Button(ax_heaviside, "Heaviside")
@@ -118,6 +133,9 @@ expstep_button = Button(ax_expstep, "ExpStep")
 
 # The function to be called anytime a slider's value changes
 def update(val):
+    global sigma
+    sigma = noise_slider.val
+    print(noise_slider.val)
     c = three_way_and(
         delay_ab=ab_slider.val,
         delay_ac=ac_slider.val,
@@ -126,7 +144,8 @@ def update(val):
         pulse_a=pulse_a_slider.val,
         pulse_b=pulse_b_slider.val,
         pulse_c=pulse_c_slider.val,
-        use_expstep=use_expstep)
+        use_expstep=use_expstep,
+        )
     for (line, g) in zip(lines, c.gates):
         line.set_ydata(g.output)
     fig.canvas.draw_idle()
@@ -140,7 +159,7 @@ def switch_input_type(new_type):
     return f
 
 # register the update function with each slider
-for slider in [ab_slider, ac_slider, pulse_c_slider, pulse_b_slider, pulse_a_slider]:
+for slider in [ab_slider, ac_slider, pulse_c_slider, pulse_b_slider, pulse_a_slider,noise_slider]:
     slider.on_changed(update)
 heaviside_button.on_clicked(switch_input_type(False))
 expstep_button.on_clicked(switch_input_type(True))
