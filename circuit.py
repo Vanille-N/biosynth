@@ -79,8 +79,11 @@ class Gate:
         self.color = color
         self.combinator = combinator
         self.timer = timer
-        self.inputs = inputs
+        self.inputs = list(inputs)
         self.output = [0]
+
+    def push_input(self, i):
+        self.inputs.append(i)
 
     def plot_static(self, xrange, yrange):
         fig = plt.figure()
@@ -95,7 +98,7 @@ class Gate:
     def out(self, t):
         while len(self.output) <= t:
             t2 = len(self.output)
-            ins = [i.out(t2) for i in self.inputs]
+            ins = [i.out(t2 - 1) for i in self.inputs]
             response = self.combinator.response(*ins)
             down = self.output[t2-1] * dt / self.timer.tau_decay
             up = response * dt / self.timer.tau_emit
