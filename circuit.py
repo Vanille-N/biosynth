@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button
 
 dt = 0.01
-sigma = 0.003
 
 # parametrized S-shaped response
 class Cutoff:
@@ -95,15 +94,16 @@ class Gate:
         ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap='viridis', edgecolor='none')
         plt.show()
 
-    def out(self, t):
+    def out(self, t, sigma):
         while len(self.output) <= t:
             t2 = len(self.output)
-            ins = [i.out(t2 - 1) for i in self.inputs]
+            ins = [i.out(t2 - 1,sigma) for i in self.inputs]
             response = self.combinator.response(*ins)
             down = self.output[t2-1] * dt / self.timer.tau_decay
             up = response * dt / self.timer.tau_emit
-            noise = np.random.normal(0,sigma)
-            self.output.append(max(0.,self.output[t2-1] + up - down + noise))
+            noise = np.random.normal(0.,sigma)
+            print(noise)
+            self.output.append(np.clip(self.output[t2-1] + up - down + noise,0,1000))
         return self.output[t]
 
 class Input:
@@ -114,7 +114,7 @@ class Input:
         self.ind = ind
         self.output = [ind(0, 0, dt)]
 
-    def out(self, t):
+    def out(self, t, sigma):
         while len(self.output) <= t:
             self.output.append(
                 self.ind(len(self.output) * dt, self.output[-1], dt))
@@ -142,10 +142,10 @@ class Circuit:
     def __init__(self, *gates):
         self.gates = gates
 
-    def run(self, imax):
+    def run(self, imax, sigma):
         for t in range(imax):
             for g in self.gates:
-                g.out(t)
+                g.out(t,sigma)
 
     def plot(self, tmax):
         imax = int(tmax / dt)
