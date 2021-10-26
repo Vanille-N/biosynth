@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button
 
 dt = 0.01
+sigma = 0.003
 
 # parametrized S-shaped response
 class Cutoff:
@@ -98,7 +99,8 @@ class Gate:
             response = self.combinator.response(*ins)
             down = self.output[t2-1] * dt / self.timer.tau_decay
             up = response * dt / self.timer.tau_emit
-            self.output.append(self.output[t2-1] + up - down)
+            noise = np.random.normal(0,sigma)
+            self.output.append(max(0.,self.output[t2-1] + up - down + noise))
         return self.output[t]
 
 class Input:
