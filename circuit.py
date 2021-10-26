@@ -102,7 +102,6 @@ class Gate:
             down = self.output[t2-1] * dt / self.timer.tau_decay
             up = response * dt / self.timer.tau_emit
             noise = np.random.normal(0.,sigma)
-            print(noise)
             self.output.append(np.clip(self.output[t2-1] + up - down + noise,0,1000))
         return self.output[t]
 
