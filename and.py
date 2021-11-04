@@ -67,7 +67,7 @@ lines = [plt.plot(t, g.output, lw=2, label=g.name, color=g.color)[0] for g in th
     pulse_c=pulse
 ).gates]
 plt.legend()
-ax.set_xlabel('Time [s]')
+ax.set_xlabel('Time [h]')
 
 axcolor = 'lightgoldenrodyellow'
 ax.margins(x=0)
@@ -135,7 +135,7 @@ expstep_button = Button(ax_expstep, "ExpStep")
 def update(val):
     global sigma
     sigma = noise_slider.val
-    print(noise_slider.val)
+    #print(noise_slider.val)
     c = three_way_and(
         delay_ab=ab_slider.val,
         delay_ac=ac_slider.val,

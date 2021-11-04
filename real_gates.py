@@ -50,7 +50,7 @@ if __name__ == "__main__":
         mecanism='protein'
     ).gates]
     plt.legend()
-    ax.set_xlabel('Time [s]')
+    ax.set_xlabel('Time [h]')
 
     axcolor = 'lightgoldenrodyellow'
     ax.margins(x=0)

@@ -4,6 +4,22 @@ from matplotlib.widgets import Slider, Button
 
 dt = 0.01
 
+class Data:
+    def __init__(self, fname):
+        with open(fname, 'r') as f:
+            cols = f.readline()
+            assert cols == "name,ymax,ymin,K,n,equation\n"
+            self.vals = {}
+            for line in f.readlines():
+                name, ymax, ymin, k, n, _ = line.split(',')
+                self.vals[name] = {
+                    "ymax": float(ymax),
+                    "ymin": float(ymin),
+                    "k": float(k),
+                    "n": float(n),
+                }
+data = Data("sshapes.csv")
+
 # parametrized S-shaped response
 class Cutoff:
     def __init__(self, *, ymax, ymin, k, n):
@@ -14,6 +30,15 @@ class Cutoff:
 
     def default():
         return Cutoff(ymax=1, ymin=0, k=0.3, n=4.7)
+
+    def from_name(key=None):
+        if key is None:
+            print("Available names:")
+            for d in data.vals:
+                print("    {}".format(d))
+        else:
+            d = data.vals[key]
+            return Cutoff(ymax=d["ymax"], ymin=d["ymin"], k=d["k"], n=d["n"])
 
     def steady_state(self, x):
         return self.ymin + (self.ymax - self.ymin) / (1 + (x / self.k) ** self.n)
@@ -39,6 +64,10 @@ class Combinator:
     @classmethod
     def default(cls):
         return cls(Cutoff.default())
+
+    @classmethod
+    def from_name(cls, key=None):
+        return cls(Cutoff.from_name(key))
 
 class Not(Combinator):
     def activation(self, x):
@@ -73,13 +102,13 @@ class Merge(Combinator):
 # - time variation parameters
 # - the 
 class Gate:
-    def __init__(self, name, color, combinator, timer, *inputs):
+    def __init__(self, name, color, combinator, timer, *inputs, initial=0):
         self.name = name
         self.color = color
         self.combinator = combinator
         self.timer = timer
         self.inputs = list(inputs)
-        self.output = [0]
+        self.output = [initial]
 
     def push_input(self, i):
         self.inputs.append(i)
@@ -102,7 +131,7 @@ class Gate:
             down = self.output[t2-1] * dt / self.timer.tau_decay
             up = response * dt / self.timer.tau_emit
             noise = np.random.normal(0.,sigma)
-            print(noise)
+            #print(noise)
             self.output.append(np.clip(self.output[t2-1] + up - down + noise,0,1000))
         return self.output[t]
 

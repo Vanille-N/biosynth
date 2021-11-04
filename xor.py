@@ -53,7 +53,7 @@ lines = [plt.plot(t, g.output, lw=2, label=g.name, color=g.color)[0] for g in xo
     pulse_b=pulse,
 ).gates]
 plt.legend()
-ax.set_xlabel('Time [s]')
+ax.set_xlabel('Time [h]')
 
 axcolor = 'lightgoldenrodyellow'
 ax.margins(x=0)
