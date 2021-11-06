@@ -1,6 +1,6 @@
 from circuit import *
 
-def false(*, imax, start, pulse, use_expstep=False):
+def false(*, imax, start, pulse, sigma, use_expstep=False):
     if use_expstep:
         f = lambda pulse: expstep_input(
             start=start,
@@ -27,7 +27,7 @@ def false(*, imax, start, pulse, use_expstep=False):
         false, false_eq,
         true, true_eq,
     )
-    c.run(imax)
+    c.run(imax, sigma)
     return c
 
 
@@ -38,6 +38,7 @@ imax = int(tmax / dt)
 t = np.linspace(0, tmax, imax)
 
 init_delay = 0
+init_sigma = 0
 
 # Create the figure and the line that we will manipulate
 fig, ax = plt.subplots()
@@ -45,6 +46,7 @@ lines = [plt.plot(t, g.output, lw=2, label=g.name, color=g.color)[0] for g in fa
     imax=imax,
     start=start,
     pulse=pulse,
+    sigma=init_sigma,
 ).gates]
 plt.legend()
 ax.set_xlabel('Time [h]')
@@ -87,6 +89,16 @@ def pulse_slider(*, x, label):
 
 pulse_slider = pulse_slider(x=0.80, label="pulse")
 
+ax = plt.axes([0.9, 0.075, 0.03, 0.2], facecolor=axcolor)
+noise_slider = Slider(
+        ax=ax,
+        label='Noise',
+        valmin=0,
+        valmax=0.0099,
+        valinit=init_sigma,
+        orientation='vertical',
+    )
+
 use_expstep = False
 ax_heaviside = plt.axes([0.05, 0.05, 0.2, 0.05])
 heaviside_button = Button(ax_heaviside, "Heaviside")
@@ -100,6 +112,7 @@ def update(val):
         start=start,
         pulse=pulse_slider.val,
         use_expstep=use_expstep,
+        sigma=noise_slider.val,
     )
     for (line, g) in zip(lines, c.gates):
         line.set_ydata(g.output)
@@ -115,6 +128,7 @@ def switch_input_type(new_type):
 
 # register the update function with each slider
 pulse_slider.on_changed(update)
+noise_slider.on_changed(update)
 heaviside_button.on_clicked(switch_input_type(False))
 expstep_button.on_clicked(switch_input_type(True))
 

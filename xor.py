@@ -1,6 +1,6 @@
 from circuit import *
 
-def xor(*, delay, imax, start, pulse_a, pulse_b, use_expstep=False):
+def xor(*, delay, imax, start, pulse_a, pulse_b, sigma, use_expstep=False):
     if use_expstep:
         f = lambda pulse, delay: expstep_input(
             start=start,
@@ -31,7 +31,7 @@ def xor(*, delay, imax, start, pulse_a, pulse_b, use_expstep=False):
         a_b_xor,
         a_b_eqxor,
     )
-    c.run(imax)
+    c.run(imax, sigma)
     return c
 
 
@@ -42,6 +42,7 @@ imax = int(tmax / dt)
 t = np.linspace(0, tmax, imax)
 
 init_delay = 0
+init_sigma = 0
 
 # Create the figure and the line that we will manipulate
 fig, ax = plt.subplots()
@@ -51,6 +52,7 @@ lines = [plt.plot(t, g.output, lw=2, label=g.name, color=g.color)[0] for g in xo
     start=start,
     pulse_a=pulse,
     pulse_b=pulse,
+    sigma=init_sigma,
 ).gates]
 plt.legend()
 ax.set_xlabel('Time [h]')
@@ -97,6 +99,17 @@ def pulse_slider(*, x, label):
 pulse_b_slider = pulse_slider(x=0.85, label="B")
 pulse_a_slider = pulse_slider(x=0.80, label="A")
 
+
+ax = plt.axes([0.9, 0.075, 0.03, 0.2], facecolor=axcolor)
+noise_slider = Slider(
+        ax=ax,
+        label='Noise',
+        valmin=0,
+        valmax=0.0099,
+        valinit=0,
+        orientation='vertical',
+    )
+
 use_expstep = False
 ax_heaviside = plt.axes([0.05, 0.05, 0.2, 0.05])
 heaviside_button = Button(ax_heaviside, "Heaviside")
@@ -105,6 +118,7 @@ expstep_button = Button(ax_expstep, "ExpStep")
 
 # The function to be called anytime a slider's value changes
 def update(val):
+    sigma = noise_slider.val
     c = xor(
         delay=delay_slider.val,
         imax=imax,
@@ -112,6 +126,7 @@ def update(val):
         pulse_a=pulse_a_slider.val,
         pulse_b=pulse_b_slider.val,
         use_expstep=use_expstep,
+        sigma=sigma,
     )
     for (line, g) in zip(lines, c.gates):
         line.set_ydata(g.output)
@@ -126,7 +141,7 @@ def switch_input_type(new_type):
     return f
 
 # register the update function with each slider
-for slider in [delay_slider, pulse_b_slider, pulse_a_slider]:
+for slider in [delay_slider, pulse_b_slider, pulse_a_slider, noise_slider]:
     slider.on_changed(update)
 heaviside_button.on_clicked(switch_input_type(False))
 expstep_button.on_clicked(switch_input_type(True))

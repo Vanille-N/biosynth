@@ -1,8 +1,6 @@
 from circuit import *
 
-sigma = 0.
-
-def three_way_and(*, delay_ab, delay_ac, imax, start, pulse_a, pulse_b, pulse_c, use_expstep=False):
+def three_way_and(*, delay_ab, delay_ac, imax, start, pulse_a, pulse_b, pulse_c, sigma, use_expstep=False):
     if use_expstep:
         f = lambda pulse, delay: expstep_input(
             start=start,
@@ -41,8 +39,7 @@ def three_way_and(*, delay_ab, delay_ac, imax, start, pulse_a, pulse_b, pulse_c,
         #a_eq_b_c_and_and,
         #a_c_and_b_eq_and,
     )
-    global sigma
-    c.run(imax,sigma)
+    c.run(imax, sigma)
     return c
 
 
@@ -54,6 +51,7 @@ t = np.linspace(0, tmax, imax)
 
 init_delay_ab = 0
 init_delay_ac = 0
+init_sigma = 0
 
 # Create the figure and the line that we will manipulate
 fig, ax = plt.subplots()
@@ -64,7 +62,8 @@ lines = [plt.plot(t, g.output, lw=2, label=g.name, color=g.color)[0] for g in th
     start=start,
     pulse_a=pulse,
     pulse_b=pulse,
-    pulse_c=pulse
+    pulse_c=pulse,
+    sigma=init_sigma,
 ).gates]
 plt.legend()
 ax.set_xlabel('Time [h]')
@@ -119,11 +118,9 @@ noise_slider = Slider(
         label='Noise',
         valmin=0,
         valmax=0.0099,
-        valinit=0,
+        valinit=init_sigma,
         orientation='vertical',
     )
-
-
 
 use_expstep = False
 ax_heaviside = plt.axes([0.05, 0.05, 0.2, 0.05])
@@ -133,7 +130,6 @@ expstep_button = Button(ax_expstep, "ExpStep")
 
 # The function to be called anytime a slider's value changes
 def update(val):
-    global sigma
     sigma = noise_slider.val
     c = three_way_and(
         delay_ab=ab_slider.val,
@@ -144,7 +140,8 @@ def update(val):
         pulse_b=pulse_b_slider.val,
         pulse_c=pulse_c_slider.val,
         use_expstep=use_expstep,
-        )
+        sigma=sigma,
+    )
     for (line, g) in zip(lines, c.gates):
         line.set_ydata(g.output)
     fig.canvas.draw_idle()

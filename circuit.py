@@ -31,18 +31,27 @@ class Cutoff:
     def default():
         return Cutoff(ymax=1, ymin=0, k=0.3, n=4.7)
 
-    def from_name(key=None):
-        if key is None:
-            print("Available names:")
-            for d in data.vals:
-                print("    {}".format(d))
-        else:
-            d = data.vals[key]
-            return Cutoff(ymax=d["ymax"], ymin=d["ymin"], k=d["k"], n=d["n"])
+    def list_name():
+        return list(data.vals.keys())
+
+    def from_name(key):
+        d = data.vals[key]
+        return Cutoff(ymax=d["ymax"], ymin=d["ymin"], k=d["k"], n=d["n"])
 
     def steady_state(self, x):
-        return self.ymin + (self.ymax - self.ymin) / (1 + (x / self.k) ** self.n)
+        return self.ymin + (self.ymax - self.ymin) / (1 + (max(x,0) / self.k) ** self.n)
 
+    def steady_state_clamp(self, x):
+        y = self.steady_state(x)
+        if 0 < y < 100:
+            return y
+        else:
+            return 0
+
+    def plot_static(self, xrange):
+        X = np.linspace(*xrange, 100)
+        Y = [ self.steady_state_clamp(x) for x in X ]
+        plt.plot(X, Y, label="y_max={} y_min={} K={} n={}".format(self.ymax, self.ymin, self.k, self.n))
 
 # non-instantaneous processes
 class Timer:
@@ -59,7 +68,7 @@ class Combinator:
         self.cutoff = cutoff
 
     def response(self, *args):
-        return self.cutoff.steady_state(self.activation(*args))
+        return self.cutoff.steady_state_clamp(self.activation(*args))
 
     @classmethod
     def default(cls):
@@ -97,6 +106,22 @@ class Merge(Combinator):
     def response(self, x, y):
         return x + y
 
+
+class Random:
+    data = []
+    idx = 0
+    def sample():
+        while Random.idx >= len(Random.data):
+            Random.data.append(np.random.normal(0., 1.))
+        res = Random.data[Random.idx]
+        Random.idx += 1
+        return res
+
+    def reset():
+        Random.idx = 0
+
+
+
 # instanciation of a logical gate takes
 # - the gate description
 # - time variation parameters
@@ -130,7 +155,7 @@ class Gate:
             response = self.combinator.response(*ins)
             down = self.output[t2-1] * dt / self.timer.tau_decay
             up = response * dt / self.timer.tau_emit
-            noise = np.random.normal(0.,sigma)
+            noise = Random.sample() * sigma
             self.output.append(np.clip(self.output[t2-1] + up - down + noise,0,1000))
         return self.output[t]
 
@@ -171,6 +196,7 @@ class Circuit:
         self.gates = gates
 
     def run(self, imax, sigma):
+        Random.reset()
         for t in range(imax):
             for g in self.gates:
                 g.out(t,sigma)

@@ -27,7 +27,7 @@ def real_nor(*, delay_ab, imax, start, pulse_a, pulse_b, mecanism='protein'):
         a, b,
         a_b_nor
     )
-    c.run(imax)
+    c.run(imax, sigma=0)
     return c
 
 if __name__ == "__main__":

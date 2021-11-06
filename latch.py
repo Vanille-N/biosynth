@@ -1,8 +1,6 @@
 from circuit import *
 
-sigma = 0.
-
-def latch(*, delay_a, delay_b, imax, start, pulse_a, pulse_b, use_expstep=False, signals="AB"):
+def latch(*, delay_a, delay_b, imax, start, pulse_a, pulse_b, sigma, use_expstep=False, signals="AB"):
     if use_expstep:
         f = lambda pulse, delay: expstep_input(
             start=start,
@@ -29,7 +27,6 @@ def latch(*, delay_a, delay_b, imax, start, pulse_a, pulse_b, use_expstep=False,
         a, b,
         p, q,
     )
-    global sigma
     c.run(imax, sigma)
     return c
 
@@ -41,6 +38,7 @@ t = np.linspace(0, tmax, imax)
 
 init_delay_a = 0
 init_delay_b = 0
+init_sigma = 0
 
 # Create the figure and the line that we will manipulate
 fig, ax = plt.subplots()
@@ -51,6 +49,7 @@ lines = [plt.plot(t, g.output, lw=3, label=g.name, color=g.color)[0] for g in la
     start=start,
     pulse_a=pulse,
     pulse_b=pulse,
+    sigma=init_sigma,
 ).gates]
 plt.legend()
 ax.set_xlabel('Time [h]')
@@ -103,7 +102,7 @@ noise_slider = Slider(
         label='Noise',
         valmin=0,
         valmax=0.0099,
-        valinit=0,
+        valinit=init_sigma,
         orientation='vertical',
     )
 
@@ -118,7 +117,6 @@ signals_button = Button(ax_signals, "Signals")
 
 # The function to be called anytime a slider's value changes
 def update(*_):
-    global sigma
     sigma = noise_slider.val
     c = latch(
         delay_a=a_slider.val,
@@ -128,7 +126,9 @@ def update(*_):
         pulse_a=pulse_a_slider.val,
         pulse_b=pulse_b_slider.val,
         use_expstep=use_expstep,
-        signals=signals)
+        signals=signals,
+        sigma=sigma,
+    )
     for (line, g) in zip(lines, c.gates):
         line.set_ydata(g.output)
     fig.canvas.draw_idle()

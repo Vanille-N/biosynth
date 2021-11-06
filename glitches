@@ -1,0 +1,19 @@
+> python
+    from circuit import *
+    for name in Cutoff.list_name():
+        Cutoff.from_name(name).plot_static([0,2])
+    plt.show()
+    Cutoff.default().plot_static([0,2])
+    plt.show()
+and
+    peak when C late compared to A ~ B -> fixed
+    loss of symmetry -> fixed
+false
+    peak -> fixed
+    dive -> duplicated but smaller
+xor
+    peak when A ~ B
+real_gates
+    looks reasonable
+latch
+    no problem, it's just cool
