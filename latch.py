@@ -2,7 +2,7 @@ from circuit import *
 
 def latch(*, delay_a, delay_b, imax, start, pulse_a, pulse_b, sigma, use_expstep=False, signals="AB"):
     if use_expstep:
-        f = lambda pulse, delay: expstep_input(
+        f = lambda pulse, delay: Input.expstep(
             start=start,
             stop=start + pulse,
             tau_emit=0.5,
@@ -10,7 +10,7 @@ def latch(*, delay_a, delay_b, imax, start, pulse_a, pulse_b, sigma, use_expstep
             delay=delay,
         )
     else:
-        f = lambda pulse, delay: heaviside_input(
+        f = lambda pulse, delay: Input.heaviside(
             start=start,
             stop=start + pulse,
             delay=delay,

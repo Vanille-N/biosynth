@@ -12,7 +12,7 @@ class RealNorCRISPRi(Gate):
 
 
 def real_nor(*, delay_ab, imax, start, pulse_a, pulse_b, mecanism='protein'):
-    f = lambda pulse, delay: heaviside_input(
+    f = lambda pulse, delay: Input.heaviside(
             start=start,
             stop=start + pulse,
             delay=delay,

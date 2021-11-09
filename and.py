@@ -2,7 +2,7 @@ from circuit import *
 
 def three_way_and(*, delay_ab, delay_ac, imax, start, pulse_a, pulse_b, pulse_c, sigma, use_expstep=False):
     if use_expstep:
-        f = lambda pulse, delay: expstep_input(
+        f = lambda pulse, delay: Input.expstep(
             start=start,
             stop=start + pulse,
             tau_emit=0.5,
@@ -10,7 +10,7 @@ def three_way_and(*, delay_ab, delay_ac, imax, start, pulse_a, pulse_b, pulse_c,
             delay=delay,
         )
     else:
-        f = lambda pulse, delay: heaviside_input(
+        f = lambda pulse, delay: Input.heaviside(
             start=start,
             stop=start + pulse,
             delay=delay,

@@ -2,7 +2,7 @@ from circuit import *
 
 def false(*, imax, start, pulse, sigma, use_expstep=False):
     if use_expstep:
-        f = lambda pulse: expstep_input(
+        f = lambda pulse: Input.expstep(
             start=start,
             stop=start + pulse,
             tau_emit=0.5,
@@ -10,7 +10,7 @@ def false(*, imax, start, pulse, sigma, use_expstep=False):
             delay=0,
         )
     else:
-        f = lambda pulse: heaviside_input(
+        f = lambda pulse: Input.heaviside(
             start=start,
             stop=start + pulse,
             delay=0,

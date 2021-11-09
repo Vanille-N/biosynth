@@ -2,8 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button
 
+# Minimum computable time variation
 dt = 0.01
 
+# Read parameters from csv file
 class Data:
     def __init__(self, fname):
         with open(fname, 'r') as f:
@@ -20,7 +22,7 @@ class Data:
                 }
 data = Data("sshapes.csv")
 
-# parametrized S-shaped response
+# Parametrized S-shaped response
 class Cutoff:
     def __init__(self, *, ymax, ymin, k, n):
         self.ymax = ymax
@@ -28,6 +30,7 @@ class Cutoff:
         self.k = k
         self.n = n
 
+    # Some arbitrary values
     def default():
         return Cutoff(ymax=1, ymin=0, k=0.3, n=4.7)
 
@@ -41,6 +44,7 @@ class Cutoff:
     def steady_state(self, x):
         return self.ymin + (self.ymax - self.ymin) / (1 + (max(x,0) / self.k) ** self.n)
 
+    # Eliminate NaN, clamp out-of-range responses
     def steady_state_clamp(self, x):
         y = self.steady_state(x)
         if 0 < y < 100:
@@ -48,12 +52,13 @@ class Cutoff:
         else:
             return 0
 
+    # Plot self.steady_state(x) as a function of x
     def plot_static(self, xrange):
         X = np.linspace(*xrange, 100)
         Y = [ self.steady_state_clamp(x) for x in X ]
         plt.plot(X, Y, label="y_max={} y_min={} K={} n={}".format(self.ymax, self.ymin, self.k, self.n))
 
-# non-instantaneous processes
+# Non-instantaneous processes share a common decay rate
 class Timer:
     def __init__(self, *, emit, decay):
         self.tau_emit = emit
@@ -62,7 +67,7 @@ class Timer:
     def default():
         return Timer(emit=1, decay=1)
 
-# a combinator is any logical gate
+# A combinator is any logical gate
 class Combinator:
     def __init__(self, cutoff):
         self.cutoff = cutoff
@@ -106,10 +111,14 @@ class Merge(Combinator):
     def response(self, x, y):
         return x + y
 
-
+# Caching of random noise
+# - saves on computation time
+# - avoids distractions due to noise being completely different
 class Random:
     data = []
     idx = 0
+
+    # Either return a cached result or extend the values
     def sample():
         while Random.idx >= len(Random.data):
             Random.data.append(np.random.normal(0., 1.))
@@ -120,12 +129,11 @@ class Random:
     def reset():
         Random.idx = 0
 
-
-
 # instanciation of a logical gate takes
-# - the gate description
+# - cosmetic parameters name and color
+# - the description of the function
 # - time variation parameters
-# - the 
+# - the inputs
 class Gate:
     def __init__(self, name, color, combinator, timer, *inputs, initial=0):
         self.name = name
@@ -135,9 +143,11 @@ class Gate:
         self.inputs = list(inputs)
         self.output = [initial]
 
+    # For non-linear circuits, allows solving dependency cycles
     def push_input(self, i):
         self.inputs.append(i)
 
+    # Plot response function
     def plot_static(self, xrange, yrange):
         fig = plt.figure()
         ax = plt.axes(projection='3d')
@@ -148,14 +158,18 @@ class Gate:
         ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap='viridis', edgecolor='none')
         plt.show()
 
+    # Compute output
     def out(self, t, sigma):
         while len(self.output) <= t:
             t2 = len(self.output)
+            # get inputs if not already calculated
             ins = [i.out(t2 - 1,sigma) for i in self.inputs]
+            # response yields gate activation
             response = self.combinator.response(*ins)
             down = self.output[t2-1] * dt / self.timer.tau_decay
             up = response * dt / self.timer.tau_emit
             noise = Random.sample() * sigma
+            # solve differential equation accounting for both decay and production
             self.output.append(np.clip(self.output[t2-1] + up - down + noise,0,1000))
         return self.output[t]
 
@@ -173,23 +187,21 @@ class Input:
                 self.ind(len(self.output) * dt, self.output[-1], dt))
         return self.output[t]
 
+    def heaviside(*, start, stop, delay):
+        def f(t, last, dt):
+            if start + delay < t < stop + delay:
+                return 1
+            else:
+                return 0
+        return f
 
-def heaviside_input(*, start, stop, delay):
-    def f(t, last, dt):
-        if start + delay < t < stop + delay:
-            return 1
-        else:
-            return 0
-    return f
-
-def expstep_input(*, start, stop, tau_emit, tau_decay, delay):
-    def f(t, last, dt):
-        down = last * dt / tau_decay
-        response = start + delay <= t <= stop + delay
-        up = response * dt / tau_emit
-        return last + up - down
-    return f
-
+    def expstep(*, start, stop, tau_emit, tau_decay, delay):
+        def f(t, last, dt):
+            down = last * dt / tau_decay
+            response = start + delay <= t <= stop + delay
+            up = response * dt / tau_emit
+            return last + up - down
+        return f
 
 class Circuit:
     def __init__(self, *gates):
